@@ -1,0 +1,25 @@
+(import ./indent :prefix "")
+(import ./colorize :prefix "")
+
+(defn pr/print-nicely
+  [expr-str]
+  (let [buf (indent/format expr-str)
+        lines (string/split "\n" (col/colorize buf))]
+    (when (zero? (length (last lines)))
+      (array/pop lines))
+    (each line lines
+      (print line))))
+
+(defn pr/print-nicely-mono
+  [expr-str]
+  (let [buf (indent/format expr-str)
+        lines (string/split "\n" buf)]
+    (when (zero? (length (last lines)))
+      (array/pop lines))
+    (each line lines
+      (print line))))
+
+(defn pr/print-separator
+  []
+  (print (string/repeat "#" (dyn :jref-width))))
+
