@@ -16779,7 +16779,7 @@ For further info, see:
 (comment import ./usages :prefix "")
 
 
-(def version "2026-03-20_06-57-41")
+(def version "2026-04-04_00-33-06")
 
 (def usage
   `````
@@ -17135,7 +17135,7 @@ For further info, see:
     (each line lines
       (print line)))
 
-  (when (get opts :usage)
+  (when (and content (get opts :usage))
     (var limit nil)
     # some special behavior
     (when (get opts :doc)
@@ -17151,6 +17151,6 @@ For further info, see:
         (eprint buf)
         (os/exit 1))))
 
-  (when (get opts :quiz)
+  (when (and content (get opts :quiz))
     (qu/thing-quiz content)))
 

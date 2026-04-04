@@ -371,7 +371,7 @@
     (each line lines
       (print line)))
 
-  (when (get opts :usage)
+  (when (and content (get opts :usage))
     (var limit nil)
     # some special behavior
     (when (get opts :doc)
@@ -387,6 +387,6 @@
         (eprint buf)
         (os/exit 1))))
 
-  (when (get opts :quiz)
+  (when (and content (get opts :quiz))
     (qu/thing-quiz content)))
 
