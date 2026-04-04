@@ -351,7 +351,7 @@
     (def etags-content
       (try
         (slurp etags-file-path)
-        ([e]
+        ([_e]
           (eprintf "Failed to read index file: %s" etags-file-path)
           (os/exit 1))))
     (src/definition thing etags-content j-src-path)

@@ -16770,7 +16770,7 @@ For further info, see:
         # show the question
         (pr/print-nicely-mono ques)
         (print "# =>")
-        (pr/print-nicely-mono ans)
+        (pr/print-nicely-mono trimmed-ans)
         (print)))
   #
   [true buf])
@@ -16779,7 +16779,7 @@ For further info, see:
 (comment import ./usages :prefix "")
 
 
-(def version "2026-04-04_00-33-06")
+(def version "2026-04-04_00-38-43")
 
 (def usage
   `````
@@ -17115,7 +17115,7 @@ For further info, see:
     (def etags-content
       (try
         (slurp etags-file-path)
-        ([e]
+        ([_e]
           (eprintf "Failed to read index file: %s" etags-file-path)
           (os/exit 1))))
     (src/definition thing etags-content j-src-path)

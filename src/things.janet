@@ -219,7 +219,7 @@
         # show the question
         (pr/print-nicely-mono ques)
         (print "# =>")
-        (pr/print-nicely-mono ans)
+        (pr/print-nicely-mono trimmed-ans)
         (print)))
   #
   [true buf])
