@@ -180,7 +180,7 @@
   # every 4th node is target whitespace.  the last 3 nodes should be
   # ignored as they are right before the closing delim and thus should
   # not have a newline placed after them
-  (for i 0 (/ (- n-nodes 3) 4)
+  (repeat (/ (- n-nodes 3) 4)
     (set curr-zloc
          (-> curr-zloc
              j/right

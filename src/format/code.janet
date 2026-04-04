@@ -85,12 +85,12 @@
 (defn fmt
   [src]
   (def buf @"")
-  (def an-ast (lwu/par src))
+  (def ast (lwu/par src))
   (def indt-stack @[""])
   (var cur-col 0)
   #
   (defn fmt*
-    [an-ast buf]
+    [an-ast a-buf]
     (def the-type (first an-ast))
     (cond
       (= :code the-type)
@@ -98,10 +98,10 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (each elt items
-          (fmt* elt buf)
-          (buffer/push-string buf "\n\n"))
-        (when (string/has-suffix? "\n\n" buf)
-          (buffer/popn buf 2)))
+          (fmt* elt a-buf)
+          (buffer/push-string a-buf "\n\n"))
+        (when (string/has-suffix? "\n\n" a-buf)
+          (buffer/popn a-buf 2)))
       #
       (= :tuple the-type)
       (let [open-delim "("
@@ -113,42 +113,42 @@
                                  (= :table (first $)))
                             items)]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # different strategy if any dictionaries are elements
         (if has-dict?
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf "\n")
-              (buffer/push-string buf (array/peek indt-stack)))
+              (buffer/push-string a-buf "\n")
+              (buffer/push-string a-buf (array/peek indt-stack)))
             (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                      buf)
-              (buffer/popn buf (+ 1 (length (array/peek indt-stack))))))
+                                      a-buf)
+              (buffer/popn a-buf (+ 1 (length (array/peek indt-stack))))))
           (do
             (when (pos? (length items))
               (def [_ _ name-of-first]
                 (first items))
               (def nl-fn
                 (get nl-tbl name-of-first
-                     (fn [i] false)))
+                     (fn [_] false)))
               (for i 0 (length items)
-                (fmt* (get items i) buf)
+                (fmt* (get items i) a-buf)
                 (if (nl-fn i)
-                  (buffer/push-string buf "\n")
-                  (buffer/push-string buf " "))
+                  (buffer/push-string a-buf "\n")
+                  (buffer/push-string a-buf " "))
                 # XXX: is this right?
                 (set cur-col (length (array/peek indt-stack))))
-              (when (or (string/has-suffix? "\n" buf)
-                        (string/has-suffix? " " buf))
-                (buffer/popn buf 1)))))
+              (when (or (string/has-suffix? "\n" a-buf)
+                        (string/has-suffix? " " a-buf))
+                (buffer/popn a-buf 1)))))
           # XXX: is this correct?
         (set cur-col (length (array/peek indt-stack)))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       #
       (get {:unreadable true
             #
@@ -166,7 +166,7 @@
            the-type)
       (let [item (in an-ast 2)]
         (+= cur-col (length item))
-        (buffer/push-string buf item))
+        (buffer/push-string a-buf item))
       #
       (get {:array true
             :bracket-array true
@@ -184,33 +184,33 @@
                                  (= :table (first $)))
                             items)]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # different strategy if any dictionaries are elements
         (if has-dict?
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf "\n")
-              (buffer/push-string buf (array/peek indt-stack)))
+              (buffer/push-string a-buf "\n")
+              (buffer/push-string a-buf (array/peek indt-stack)))
             (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                      buf)
-              (buffer/popn buf (+ 1 (length (array/peek indt-stack))))))
+                                      a-buf)
+              (buffer/popn a-buf (+ 1 (length (array/peek indt-stack))))))
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf " "))
-            (when (string/has-suffix? " " buf)
-              (buffer/popn buf 1))))
+              (buffer/push-string a-buf " "))
+            (when (string/has-suffix? " " a-buf)
+              (buffer/popn a-buf 1))))
         # XXX: is this correct?
         (set cur-col (length (array/peek indt-stack)))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       #
       (get {:struct true
             :table true}
@@ -223,29 +223,29 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # format elements
         (for i 0 (/ (length items) 2)
           (def idx (* i 2))
-          (fmt* (get items idx) buf)
+          (fmt* (get items idx) a-buf)
           #
           (+= cur-col 1)
-          (buffer/push-string buf " ")
+          (buffer/push-string a-buf " ")
           #
-          (fmt* (get items (inc idx)) buf)
+          (fmt* (get items (inc idx)) a-buf)
           #
           (set cur-col (length (array/peek indt-stack)))
-          (buffer/push-string buf "\n")
-          (buffer/push-string buf (array/peek indt-stack)))
+          (buffer/push-string a-buf "\n")
+          (buffer/push-string a-buf (array/peek indt-stack)))
         # XXX: is 0 correct, here?
         (set cur-col 0)
         (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                  buf)
-          (buffer/popn buf (+ 1 (length (array/peek indt-stack)))))
+                                  a-buf)
+          (buffer/popn a-buf (+ 1 (length (array/peek indt-stack)))))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       # XXX: janet itself won't print things with any of the following?
       (get {:fn true
             :quasiquote true
@@ -265,15 +265,15 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length sigil))
-        (buffer/push-string buf sigil)
+        (buffer/push-string a-buf sigil)
         (each elt items
-          (fmt* elt buf)))
+          (fmt* elt a-buf)))
       #
       (errorf "Unexpected type: %s" the-type)
       )
-    buf)
+    a-buf)
   #
-  (fmt* an-ast buf))
+  (fmt* ast buf))
 
 (comment
 

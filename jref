@@ -3772,7 +3772,7 @@
   # every 4th node is target whitespace.  the last 3 nodes should be
   # ignored as they are right before the closing delim and thus should
   # not have a newline placed after them
-  (for i 0 (/ (- n-nodes 3) 4)
+  (repeat (/ (- n-nodes 3) 4)
     (set curr-zloc
          (-> curr-zloc
              j/right
@@ -4013,12 +4013,12 @@
 (defn code/fmt
   [src]
   (def buf @"")
-  (def an-ast (lwu/par src))
+  (def ast (lwu/par src))
   (def indt-stack @[""])
   (var cur-col 0)
   #
   (defn fmt*
-    [an-ast buf]
+    [an-ast a-buf]
     (def the-type (first an-ast))
     (cond
       (= :code the-type)
@@ -4026,10 +4026,10 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (each elt items
-          (fmt* elt buf)
-          (buffer/push-string buf "\n\n"))
-        (when (string/has-suffix? "\n\n" buf)
-          (buffer/popn buf 2)))
+          (fmt* elt a-buf)
+          (buffer/push-string a-buf "\n\n"))
+        (when (string/has-suffix? "\n\n" a-buf)
+          (buffer/popn a-buf 2)))
       #
       (= :tuple the-type)
       (let [open-delim "("
@@ -4041,42 +4041,42 @@
                                  (= :table (first $)))
                             items)]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # different strategy if any dictionaries are elements
         (if has-dict?
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf "\n")
-              (buffer/push-string buf (array/peek indt-stack)))
+              (buffer/push-string a-buf "\n")
+              (buffer/push-string a-buf (array/peek indt-stack)))
             (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                      buf)
-              (buffer/popn buf (+ 1 (length (array/peek indt-stack))))))
+                                      a-buf)
+              (buffer/popn a-buf (+ 1 (length (array/peek indt-stack))))))
           (do
             (when (pos? (length items))
               (def [_ _ name-of-first]
                 (first items))
               (def nl-fn
                 (get code/nl-tbl name-of-first
-                     (fn [i] false)))
+                     (fn [_] false)))
               (for i 0 (length items)
-                (fmt* (get items i) buf)
+                (fmt* (get items i) a-buf)
                 (if (nl-fn i)
-                  (buffer/push-string buf "\n")
-                  (buffer/push-string buf " "))
+                  (buffer/push-string a-buf "\n")
+                  (buffer/push-string a-buf " "))
                 # XXX: is this right?
                 (set cur-col (length (array/peek indt-stack))))
-              (when (or (string/has-suffix? "\n" buf)
-                        (string/has-suffix? " " buf))
-                (buffer/popn buf 1)))))
+              (when (or (string/has-suffix? "\n" a-buf)
+                        (string/has-suffix? " " a-buf))
+                (buffer/popn a-buf 1)))))
           # XXX: is this correct?
         (set cur-col (length (array/peek indt-stack)))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       #
       (get {:unreadable true
             #
@@ -4094,7 +4094,7 @@
            the-type)
       (let [item (in an-ast 2)]
         (+= cur-col (length item))
-        (buffer/push-string buf item))
+        (buffer/push-string a-buf item))
       #
       (get {:array true
             :bracket-array true
@@ -4112,33 +4112,33 @@
                                  (= :table (first $)))
                             items)]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # different strategy if any dictionaries are elements
         (if has-dict?
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf "\n")
-              (buffer/push-string buf (array/peek indt-stack)))
+              (buffer/push-string a-buf "\n")
+              (buffer/push-string a-buf (array/peek indt-stack)))
             (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                      buf)
-              (buffer/popn buf (+ 1 (length (array/peek indt-stack))))))
+                                      a-buf)
+              (buffer/popn a-buf (+ 1 (length (array/peek indt-stack))))))
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf " "))
-            (when (string/has-suffix? " " buf)
-              (buffer/popn buf 1))))
+              (buffer/push-string a-buf " "))
+            (when (string/has-suffix? " " a-buf)
+              (buffer/popn a-buf 1))))
         # XXX: is this correct?
         (set cur-col (length (array/peek indt-stack)))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       #
       (get {:struct true
             :table true}
@@ -4151,29 +4151,29 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # format elements
         (for i 0 (/ (length items) 2)
           (def idx (* i 2))
-          (fmt* (get items idx) buf)
+          (fmt* (get items idx) a-buf)
           #
           (+= cur-col 1)
-          (buffer/push-string buf " ")
+          (buffer/push-string a-buf " ")
           #
-          (fmt* (get items (inc idx)) buf)
+          (fmt* (get items (inc idx)) a-buf)
           #
           (set cur-col (length (array/peek indt-stack)))
-          (buffer/push-string buf "\n")
-          (buffer/push-string buf (array/peek indt-stack)))
+          (buffer/push-string a-buf "\n")
+          (buffer/push-string a-buf (array/peek indt-stack)))
         # XXX: is 0 correct, here?
         (set cur-col 0)
         (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                  buf)
-          (buffer/popn buf (+ 1 (length (array/peek indt-stack)))))
+                                  a-buf)
+          (buffer/popn a-buf (+ 1 (length (array/peek indt-stack)))))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       # XXX: janet itself won't print things with any of the following?
       (get {:fn true
             :quasiquote true
@@ -4193,15 +4193,15 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length sigil))
-        (buffer/push-string buf sigil)
+        (buffer/push-string a-buf sigil)
         (each elt items
-          (fmt* elt buf)))
+          (fmt* elt a-buf)))
       #
       (errorf "Unexpected type: %s" the-type)
       )
-    buf)
+    a-buf)
   #
-  (fmt* an-ast buf))
+  (fmt* ast buf))
 
 (comment
 
@@ -4316,17 +4316,17 @@
 (defn data/fmt
   [src]
   (def buf @"")
-  (def an-ast (lwu/par src))
+  (def ast (lwu/par src))
   (def indt-stack @[""])
   (var cur-col 0)
   #
   (defn fmt*
-    [an-ast buf]
+    [an-ast a-buf]
     (def the-type (first an-ast))
     (cond
       (= :code the-type)
       (each elt (drop 2 an-ast)
-        (fmt* elt buf))
+        (fmt* elt a-buf))
       #
       (get {:unreadable true
             #
@@ -4344,7 +4344,7 @@
            the-type)
       (let [item (in an-ast 2)]
         (+= cur-col (length item))
-        (buffer/push-string buf item))
+        (buffer/push-string a-buf item))
       #
       (get {:array true
             :bracket-array true
@@ -4364,33 +4364,33 @@
                                  (= :table (first $)))
                             items)]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # different strategy if any dictionaries are elements
         (if has-dict?
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf "\n")
-              (buffer/push-string buf (array/peek indt-stack)))
+              (buffer/push-string a-buf "\n")
+              (buffer/push-string a-buf (array/peek indt-stack)))
             (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                      buf)
-              (buffer/popn buf (+ 1 (length (array/peek indt-stack))))))
+                                      a-buf)
+              (buffer/popn a-buf (+ 1 (length (array/peek indt-stack))))))
           (do
             (each elt items
-              (fmt* elt buf)
+              (fmt* elt a-buf)
               #
               (set cur-col (length (array/peek indt-stack)))
-              (buffer/push-string buf " "))
-            (when (string/has-suffix? " " buf)
-              (buffer/popn buf 1))))
+              (buffer/push-string a-buf " "))
+            (when (string/has-suffix? " " a-buf)
+              (buffer/popn a-buf 1))))
         # XXX: is this correct?
         (set cur-col (length (array/peek indt-stack)))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       #
       (get {:struct true
             :table true}
@@ -4403,29 +4403,29 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length open-delim))
-        (buffer/push-string buf open-delim)
+        (buffer/push-string a-buf open-delim)
         (array/push indt-stack
                     (string/repeat " " cur-col))
         # format elements
         (for i 0 (/ (length items) 2)
           (def idx (* i 2))
-          (fmt* (get items idx) buf)
+          (fmt* (get items idx) a-buf)
           #
           (+= cur-col 1)
-          (buffer/push-string buf " ")
+          (buffer/push-string a-buf " ")
           #
-          (fmt* (get items (inc idx)) buf)
+          (fmt* (get items (inc idx)) a-buf)
           #
           (set cur-col (length (array/peek indt-stack)))
-          (buffer/push-string buf "\n")
-          (buffer/push-string buf (array/peek indt-stack)))
+          (buffer/push-string a-buf "\n")
+          (buffer/push-string a-buf (array/peek indt-stack)))
         # XXX: is 0 correct, here?
         (set cur-col 0)
         (when (string/has-suffix? (string "\n" (array/peek indt-stack))
-                                  buf)
-          (buffer/popn buf (+ 1 (length (array/peek indt-stack)))))
+                                  a-buf)
+          (buffer/popn a-buf (+ 1 (length (array/peek indt-stack)))))
         (array/pop indt-stack)
-        (buffer/push-string buf close-delim))
+        (buffer/push-string a-buf close-delim))
       # XXX: janet itself won't print things with any of the following?
       (get {:fn true
             :quasiquote true
@@ -4445,15 +4445,15 @@
                                 (not= :comment (first $)))
                           (drop 2 an-ast))]
         (+= cur-col (length sigil))
-        (buffer/push-string buf sigil)
+        (buffer/push-string a-buf sigil)
         (each elt items
-          (fmt* elt buf)))
+          (fmt* elt a-buf)))
       #
       (errorf "Unexpected type: %s" the-type)
       )
-    buf)
+    a-buf)
   #
-  (fmt* an-ast buf))
+  (fmt* ast buf))
 
 (comment
 
@@ -4659,7 +4659,7 @@
     (def eol "\n")
     (var tags-byte-count 0)
     (+= tags-byte-count
-        (reduce (fn [acc [first-line id line-no file-offset]]
+        (reduce (fn [acc [first-line id line-no _file-offset]]
                   (+ acc
                      (length first-line)
                      # delete
@@ -4684,7 +4684,7 @@
                  # total size of what follows -- assumes eol is one byte?
                  (string tags-byte-count)
                  eol)
-    (each [first-line id line-no file-offset] tags
+    (each [first-line id line-no _file-offset] tags
       (buffer/push out-buf
                    # first line of text without line-ending
                    first-line
@@ -5261,7 +5261,7 @@
   (def caps
     (peg/match idx/ic/col-one src))
 
-  (def [scan-from-right td-en-st macro-defines unmatched]
+  (def [scan-from-right td-en-st macro-defines _unmatched]
     (idx/ic/separate-lines caps))
 
   # XXX: what about duplicates?
@@ -5314,10 +5314,8 @@
                    (string pos)])))
   # enum constants
   (each item td-en-st
-    (def line
-      (get item :text))
-    (def pos
-      (get item :bp))
+    (def line (get item :text))
+    (def pos (get item :bp))
     (when (or (and (string/has-prefix? "enum " line)
                    (string/has-suffix? "{" line))
               (and (string/has-prefix? "typedef enum " line)
@@ -5338,24 +5336,20 @@
             :id (some (choice :a :d "_"))}
           src pos))
       (when m
-        (each item m
-          (def line-no
-            (get item :bl))
-          (def pos
-            (get item :bp))
-          (def line
-            (get item :text))
-          (def trimmed
-            (string/trim line))
+        (each m-item m
+          (def mi-line-no (get m-item :bl))
+          (def mi-pos (get m-item :bp))
+          (def mi-line (get m-item :text))
+          (def trimmed (string/trim mi-line))
           (def id
             (string/slice trimmed
                           0 (or (string/find "," trimmed)
                                 -1)))
           (array/push results
-                      [line
+                      [mi-line
                        id
-                       (string line-no)
-                       (string pos)])))))
+                       (string mi-line-no)
+                       (string mi-pos)])))))
   #
   results)
 
@@ -6026,20 +6020,20 @@
                # add the index position and parent id for each child
                [_ children]
                (reduce (fn add-idx-and-pid
-                         [[counter kids] child]
+                         [[a-counter kids] child]
                          # XXX
-                         #(d/deprintf "counter: %n" counter)
+                         #(d/deprintf "counter: %n" a-counter)
                          #(d/deprintf "kids: %n" kids)
                          #(d/deprintf "child: %n" child)
-                         (def [_ attrs _] child)
+                         (def [_ c-attrs _] child)
                          # XXX
-                         #(d/deprintf "type: %n" (type attrs))
-                         (unless (= :table (type attrs))
+                         #(d/deprintf "type: %n" (type c-attrs))
+                         (unless (= :table (type c-attrs))
                            (eprintf "child: %n" child)
                            (eprintf "$&: %n" $&))
-                         (put attrs :idx counter)
-                         (put attrs :pid id)
-                         [(inc counter)
+                         (put c-attrs :idx a-counter)
+                         (put c-attrs :pid id)
+                         [(inc a-counter)
                           (array/push kids child)])
                        # index and to-be-filled-with-children
                        [0 @[]]
@@ -6080,11 +6074,11 @@
         (if-let [captures (peg/match loc-grammar src start)]
           (let [[bl bc bp] (array/slice captures 0 3)
                 [el ec ep] (array/slice captures (dec -3))
-                [_ trees] (reduce (fn [[counter kids] child]
+                [_ trees] (reduce (fn [[a-counter kids] child]
                                     (def [_ attrs _] child)
-                                    (put attrs :idx counter)
+                                    (put attrs :idx a-counter)
                                     (put attrs :pid top-id)
-                                    [(inc counter)
+                                    [(inc a-counter)
                                      (array/push kids child)])
                                   [0 @[]]
                                   (array/slice captures 3 (dec -3)))]
@@ -6509,7 +6503,7 @@
               (length parse-results))))
   #
   (defn make-query-peg
-    [an-ast arr]
+    [the-ast the-arr]
     (var saw-ws-last-time nil)
     (defn gen*
       [an-ast arr]
@@ -6565,7 +6559,7 @@
       #
       arr)
     #
-    (gen* an-ast arr))
+    (gen* the-ast the-arr))
   #
   {:lang-grammar lang-grammar
    :loc-table loc->node
@@ -6729,7 +6723,7 @@
         :loc-table loc->node
         :parse-query parse-query
         :make-query-peg make-query-peg
-        :query-grammar q-grammar}
+        :query-grammar _q-grammar}
     # XXX: only one delim?
     (idx/jq/make-infra {:safe-delim safe-left-delim}))
   # XXX
@@ -6887,14 +6881,14 @@
      <:...>)
     ``)
 
-  (def [results _ loc->node]
+  (def [q-results _ _loc->node]
     (idx/jq/query query-str src {:blank-delims [`<` `>`]}))
 
   (def {:grammar loc-grammar
-        :issuer issue-id
+        :issuer _issue-id
         :node-table id->node
         :loc-table loc->id
-        :reset reset}
+        :reset _reset}
     (idx/jc/make-infra))
 
   (def m-raw
@@ -6927,7 +6921,7 @@
               (def [_ _ head-name] head-node)
               # XXX: any other things (e.g. compif)?
               (= "compwhen" head-name))
-            results))
+            q-results))
 
   (idx/idx/get-first-lines-and-offsets! src filtered ::name)
 
@@ -7244,7 +7238,7 @@ search-string,idline,offset-from-start
 
 
 
-(def idx/version "DEVEL")
+(def idx/version "2026-04-04_05-14-30")
 
 (def idx/usage
   ``
@@ -7293,8 +7287,7 @@ search-string,idline,offset-from-start
     (def dir (os/cwd))
     (defer (os/cd dir)
       (os/cd dir-path)
-      (def proc (os/execute ["git" "ls-files"] :px
-                            {:out of}))
+      (os/execute ["git" "ls-files"] :px {:out of})
       # XXX: unneeded?
       (file/flush of)
       (file/seek of :set 0)
@@ -7607,7 +7600,7 @@ search-string,idline,offset-from-start
                       ,(indent/pnode :unreadable))
         :form
         (sequence (drop (cmt (constant "smile")
-                             ,(fn [& args]
+                             ,(fn [&]
                                 (set bi false)
                                 true)))
                   (choice :unreadable
@@ -7624,7 +7617,7 @@ search-string,idline,offset-from-start
                         (first args)))
                 # :comment
                 (sequence (drop (cmt (constant "smile")
-                                     ,(fn [& args]
+                                     ,(fn [&]
                                         (set bi false)
                                         true)))
                           :comment))
@@ -7979,7 +7972,7 @@ search-string,idline,offset-from-start
     # node-specific "emission"
     (match node
       "\n" (newline)
-      [:ws-bi x] (prin "")
+      [:ws-bi _x] (prin "")
       [:ws x] (emit x)
       [:ws-tr x] (prin x)
       [:comment x] (emit "#" x)
@@ -16779,7 +16772,7 @@ For further info, see:
 (comment import ./usages :prefix "")
 
 
-(def version "2026-04-04_00-38-43")
+(def version "2026-04-04_05-16-01")
 
 (def usage
   `````

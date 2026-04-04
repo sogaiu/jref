@@ -84,7 +84,7 @@
     (def eol "\n")
     (var tags-byte-count 0)
     (+= tags-byte-count
-        (reduce (fn [acc [first-line id line-no file-offset]]
+        (reduce (fn [acc [first-line id line-no _file-offset]]
                   (+ acc
                      (length first-line)
                      # delete
@@ -109,7 +109,7 @@
                  # total size of what follows -- assumes eol is one byte?
                  (string tags-byte-count)
                  eol)
-    (each [first-line id line-no file-offset] tags
+    (each [first-line id line-no _file-offset] tags
       (buffer/push out-buf
                    # first line of text without line-ending
                    first-line
@@ -686,7 +686,7 @@
   (def caps
     (peg/match ic/col-one src))
 
-  (def [scan-from-right td-en-st macro-defines unmatched]
+  (def [scan-from-right td-en-st macro-defines _unmatched]
     (ic/separate-lines caps))
 
   # XXX: what about duplicates?
@@ -739,10 +739,8 @@
                    (string pos)])))
   # enum constants
   (each item td-en-st
-    (def line
-      (get item :text))
-    (def pos
-      (get item :bp))
+    (def line (get item :text))
+    (def pos (get item :bp))
     (when (or (and (string/has-prefix? "enum " line)
                    (string/has-suffix? "{" line))
               (and (string/has-prefix? "typedef enum " line)
@@ -763,24 +761,20 @@
             :id (some (choice :a :d "_"))}
           src pos))
       (when m
-        (each item m
-          (def line-no
-            (get item :bl))
-          (def pos
-            (get item :bp))
-          (def line
-            (get item :text))
-          (def trimmed
-            (string/trim line))
+        (each m-item m
+          (def mi-line-no (get m-item :bl))
+          (def mi-pos (get m-item :bp))
+          (def mi-line (get m-item :text))
+          (def trimmed (string/trim mi-line))
           (def id
             (string/slice trimmed
                           0 (or (string/find "," trimmed)
                                 -1)))
           (array/push results
-                      [line
+                      [mi-line
                        id
-                       (string line-no)
-                       (string pos)])))))
+                       (string mi-line-no)
+                       (string mi-pos)])))))
   #
   results)
 
@@ -1451,20 +1445,20 @@
                # add the index position and parent id for each child
                [_ children]
                (reduce (fn add-idx-and-pid
-                         [[counter kids] child]
+                         [[a-counter kids] child]
                          # XXX
-                         #(d/deprintf "counter: %n" counter)
+                         #(d/deprintf "counter: %n" a-counter)
                          #(d/deprintf "kids: %n" kids)
                          #(d/deprintf "child: %n" child)
-                         (def [_ attrs _] child)
+                         (def [_ c-attrs _] child)
                          # XXX
-                         #(d/deprintf "type: %n" (type attrs))
-                         (unless (= :table (type attrs))
+                         #(d/deprintf "type: %n" (type c-attrs))
+                         (unless (= :table (type c-attrs))
                            (eprintf "child: %n" child)
                            (eprintf "$&: %n" $&))
-                         (put attrs :idx counter)
-                         (put attrs :pid id)
-                         [(inc counter)
+                         (put c-attrs :idx a-counter)
+                         (put c-attrs :pid id)
+                         [(inc a-counter)
                           (array/push kids child)])
                        # index and to-be-filled-with-children
                        [0 @[]]
@@ -1505,11 +1499,11 @@
         (if-let [captures (peg/match loc-grammar src start)]
           (let [[bl bc bp] (array/slice captures 0 3)
                 [el ec ep] (array/slice captures (dec -3))
-                [_ trees] (reduce (fn [[counter kids] child]
+                [_ trees] (reduce (fn [[a-counter kids] child]
                                     (def [_ attrs _] child)
-                                    (put attrs :idx counter)
+                                    (put attrs :idx a-counter)
                                     (put attrs :pid top-id)
-                                    [(inc counter)
+                                    [(inc a-counter)
                                      (array/push kids child)])
                                   [0 @[]]
                                   (array/slice captures 3 (dec -3)))]
@@ -1934,7 +1928,7 @@
               (length parse-results))))
   #
   (defn make-query-peg
-    [an-ast arr]
+    [the-ast the-arr]
     (var saw-ws-last-time nil)
     (defn gen*
       [an-ast arr]
@@ -1990,7 +1984,7 @@
       #
       arr)
     #
-    (gen* an-ast arr))
+    (gen* the-ast the-arr))
   #
   {:lang-grammar lang-grammar
    :loc-table loc->node
@@ -2154,7 +2148,7 @@
         :loc-table loc->node
         :parse-query parse-query
         :make-query-peg make-query-peg
-        :query-grammar q-grammar}
+        :query-grammar _q-grammar}
     # XXX: only one delim?
     (jq/make-infra {:safe-delim safe-left-delim}))
   # XXX
@@ -2312,14 +2306,14 @@
      <:...>)
     ``)
 
-  (def [results _ loc->node]
+  (def [q-results _ _loc->node]
     (jq/query query-str src {:blank-delims [`<` `>`]}))
 
   (def {:grammar loc-grammar
-        :issuer issue-id
+        :issuer _issue-id
         :node-table id->node
         :loc-table loc->id
-        :reset reset}
+        :reset _reset}
     (jc/make-infra))
 
   (def m-raw
@@ -2352,7 +2346,7 @@
               (def [_ _ head-name] head-node)
               # XXX: any other things (e.g. compif)?
               (= "compwhen" head-name))
-            results))
+            q-results))
 
   (idx/get-first-lines-and-offsets! src filtered ::name)
 
@@ -2669,7 +2663,7 @@ search-string,idline,offset-from-start
 
 
 
-(def version "DEVEL")
+(def version "2026-04-04_05-14-30")
 
 (def usage
   ``
@@ -2718,8 +2712,7 @@ search-string,idline,offset-from-start
     (def dir (os/cwd))
     (defer (os/cd dir)
       (os/cd dir-path)
-      (def proc (os/execute ["git" "ls-files"] :px
-                            {:out of}))
+      (os/execute ["git" "ls-files"] :px {:out of})
       # XXX: unneeded?
       (file/flush of)
       (file/seek of :set 0)

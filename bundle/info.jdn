@@ -9,8 +9,12 @@
    :paths [["sbb.janet" "bundle/"]]}
   {:name "index-janet"
    :url "https://github.com/sogaiu/index-janet"
-   :tag "0fa9b39a19fd5ac8cf694d5b63d71dcf24ace5b8"
+   :tag "d651bfbd6f10ecd0e1b53b0a6b0679d82ef9b9a1"
    :paths [["idx.janet" "src/"]]}
+  {:name "jandent"
+   :url "https://github.com/sogaiu/jandent"
+   :tag "1943b1b9d8862f52f68ba63350f40a122b291eb4"
+   :paths [["src/indent.janet" "src/"]]}
   {:name "janet-etags"
    :url "https://github.com/sogaiu/janet-etags"
    :tag "df6e4fd91e86b4e7b90f867eec7b3592727e7abc"
