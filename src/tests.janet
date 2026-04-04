@@ -315,7 +315,7 @@
   (def tests @[])
   # process comment block content
   (while (not (j/end? curr-zloc))
-    (def [ti-zloc label-left label-right]
+    (def [ti-zloc _label-left _label-right]
       (find-test-indicator curr-zloc))
     (unless ti-zloc
       (break))

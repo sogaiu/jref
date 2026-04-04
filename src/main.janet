@@ -45,8 +45,6 @@
     -e, --eval               evaluate code
     -m, --macex1             macroexpand code
 
-    -r, --repl               run a repl
-
         --env-vars           show tweakable environment vars
 
         --bash-completion    output bash-completion bits
@@ -212,11 +210,6 @@
       (if-let [alias (get things/aliases-table cand)]
         alias
         cand)))
-
-  # XXX: organize this later
-  (when (get opts :repl)
-    (eval-string "(import janet-ref/lib/repl) (repl/cli-main @[])")
-    (os/exit 0))
 
   # XXX: organize this later
   (when (get opts :pprint)

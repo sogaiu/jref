@@ -8441,7 +8441,7 @@ search-string,idline,offset-from-start
   (def tests @[])
   # process comment block content
   (while (not (j/end? curr-zloc))
-    (def [ti-zloc label-left label-right]
+    (def [ti-zloc _label-left _label-right]
       (tests/find-test-indicator curr-zloc))
     (unless ti-zloc
       (break))
@@ -8864,7 +8864,7 @@ search-string,idline,offset-from-start
       (each thng things
         (def a-node
           (j/node thng))
-        (def [a-type _ a-name] a-node)
+        (def [a-type _ _] a-node)
         (when (= :symbol a-type)
           (put names (get thng 2) true))
         (qu/deprintf (lwu/gen a-node)))
@@ -8882,28 +8882,27 @@ search-string,idline,offset-from-start
       (eprint "Unexpected node-type:" test-node-type)
       (break [nil nil])))
   # find how many steps away we are from test-zloc's node
-  (var curr-zloc chosen-thing-zloc)
+  (var temp-zloc chosen-thing-zloc)
   # XXX: compare (attrs ...) results instead of gen / node
   (def test-str
     (lwu/gen (j/node test-zloc)))
-  (while curr-zloc
+  (while temp-zloc
     # XXX: expensive?
     # XXX: compare (attrs ...) results instead -- should be faster
     #      attrs should be unique inside the tree(?)
-    (when (= (lwu/gen (j/node curr-zloc))
+    (when (= (lwu/gen (j/node temp-zloc))
              test-str)
       (break))
-    (set curr-zloc
-         (j/df-prev curr-zloc))
+    (set temp-zloc
+         (j/df-prev temp-zloc))
     (++ steps))
   # XXX
   (qu/deprintf "steps: %d" steps)
   # XXX: check not nil?
   (var [curr-zloc blanked-item]
-    (-> chosen-thing-zloc
-        (qu/blank-thing blank-char-str)))
+    (qu/blank-thing chosen-thing-zloc blank-char-str))
   # get back to "test-zloc" position
-  (for i 0 steps
+  (repeat steps
     (set curr-zloc
          (j/df-prev curr-zloc)))
   # XXX
@@ -16772,7 +16771,7 @@ For further info, see:
 (comment import ./usages :prefix "")
 
 
-(def version "2026-04-04_05-16-01")
+(def version "2026-04-04_05-27-15")
 
 (def usage
   `````
@@ -16801,8 +16800,6 @@ For further info, see:
     -i, --indent             indent code
     -e, --eval               evaluate code
     -m, --macex1             macroexpand code
-
-    -r, --repl               run a repl
 
         --env-vars           show tweakable environment vars
 
@@ -16969,11 +16966,6 @@ For further info, see:
       (if-let [alias (get things/aliases-table cand)]
         alias
         cand)))
-
-  # XXX: organize this later
-  (when (get opts :repl)
-    (eval-string "(import janet-ref/lib/repl) (repl/cli-main @[])")
-    (os/exit 0))
 
   # XXX: organize this later
   (when (get opts :pprint)

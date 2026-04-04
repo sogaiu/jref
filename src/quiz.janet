@@ -188,7 +188,7 @@
       (each thng things
         (def a-node
           (j/node thng))
-        (def [a-type _ a-name] a-node)
+        (def [a-type _ _] a-node)
         (when (= :symbol a-type)
           (put names (get thng 2) true))
         (deprintf (lwu/gen a-node)))
@@ -206,28 +206,27 @@
       (eprint "Unexpected node-type:" test-node-type)
       (break [nil nil])))
   # find how many steps away we are from test-zloc's node
-  (var curr-zloc chosen-thing-zloc)
+  (var temp-zloc chosen-thing-zloc)
   # XXX: compare (attrs ...) results instead of gen / node
   (def test-str
     (lwu/gen (j/node test-zloc)))
-  (while curr-zloc
+  (while temp-zloc
     # XXX: expensive?
     # XXX: compare (attrs ...) results instead -- should be faster
     #      attrs should be unique inside the tree(?)
-    (when (= (lwu/gen (j/node curr-zloc))
+    (when (= (lwu/gen (j/node temp-zloc))
              test-str)
       (break))
-    (set curr-zloc
-         (j/df-prev curr-zloc))
+    (set temp-zloc
+         (j/df-prev temp-zloc))
     (++ steps))
   # XXX
   (deprintf "steps: %d" steps)
   # XXX: check not nil?
   (var [curr-zloc blanked-item]
-    (-> chosen-thing-zloc
-        (blank-thing blank-char-str)))
+    (blank-thing chosen-thing-zloc blank-char-str))
   # get back to "test-zloc" position
-  (for i 0 steps
+  (repeat steps
     (set curr-zloc
          (j/df-prev curr-zloc)))
   # XXX

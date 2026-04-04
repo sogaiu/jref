@@ -169,8 +169,6 @@ Options:
   -e, --eval               evaluate code
   -m, --macex1             macroexpand code
 
-  -r, --repl               run a repl
-
       --env-vars           show tweakable environment vars
 
       --bash-completion    output bash-completion bits
